@@ -3,7 +3,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
-import { createVideo, deleteVideo, getAllVideos, getPublishedVideos, getVideoById, incrementViewCount } from "./db";
+import { createVideo, deleteVideo, getAllVideos, getPublishedVideos, getVideoById, incrementViewCount, updateVideoPublishedStatus } from "./db";
 import { storagePut } from "./storage";
 
 export const appRouter = router({
@@ -78,6 +78,19 @@ export const appRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         await deleteVideo(input.id);
+        return { success: true };
+      }),
+
+    // Update video published status
+    updatePublishedStatus: protectedProcedure
+      .input(
+        z.object({
+          id: z.number(),
+          isPublished: z.number().min(0).max(1),
+        })
+      )
+      .mutation(async ({ input }) => {
+        await updateVideoPublishedStatus(input.id, input.isPublished);
         return { success: true };
       }),
 

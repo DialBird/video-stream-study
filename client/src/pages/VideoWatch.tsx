@@ -19,6 +19,13 @@ export default function VideoWatch() {
 
   const incrementViewMutation = trpc.video.incrementView.useMutation();
 
+  // Handle video loading error (including 401 unauthorized)
+  useEffect(() => {
+    if (error) {
+      console.error("Video load error:", error);
+    }
+  }, [error]);
+
   // Increment view count when video starts playing
   useEffect(() => {
     if (!video || hasIncrementedView) return;
@@ -115,6 +122,25 @@ export default function VideoWatch() {
               controls
               preload="metadata"
               src={video.url}
+              onError={(e) => {
+                const videoElement = e.currentTarget;
+                if (videoElement.error) {
+                  const error = videoElement.error;
+                  if (error.code === error.MEDIA_ERR_SRC_NOT_SUPPORTED || error.code === error.MEDIA_ERR_NETWORK) {
+                    // Check if it's a 401 error by fetching the URL
+                    fetch(video.url)
+                      .then(response => {
+                        if (response.status === 401) {
+                          console.log("Video requires authentication");
+                          // You can show a message or redirect to login
+                        }
+                      })
+                      .catch(() => {
+                        // Network error or other issue
+                      });
+                  }
+                }
+              }}
             >
               <source src={video.url} type={video.mimeType} />
               お使いのブラウザは動画タグをサポートしていません。

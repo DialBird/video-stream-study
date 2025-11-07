@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
 import { Loader2, Trash2, Upload, Video } from "lucide-react";
@@ -21,6 +22,7 @@ export default function AdminVideos() {
   const { data: videos, isLoading, refetch } = trpc.video.listAll.useQuery();
   const createVideoMutation = trpc.video.create.useMutation();
   const deleteVideoMutation = trpc.video.delete.useMutation();
+  const updatePublishedStatusMutation = trpc.video.updatePublishedStatus.useMutation();
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -116,6 +118,18 @@ export default function AdminVideos() {
     } catch (error) {
       console.error("Delete error:", error);
       toast.error("削除に失敗しました");
+    }
+  };
+
+  const handleTogglePublished = async (id: number, currentStatus: number) => {
+    const newStatus = currentStatus === 1 ? 0 : 1;
+    try {
+      await updatePublishedStatusMutation.mutateAsync({ id, isPublished: newStatus });
+      toast.success(newStatus === 1 ? "動画を公開しました" : "動画を非公開にしました");
+      refetch();
+    } catch (error) {
+      console.error("Update published status error:", error);
+      toast.error("公開状態の変更に失敗しました");
     }
   };
 
@@ -240,17 +254,33 @@ export default function AdminVideos() {
                         )}
                         <p className="text-xs text-muted-foreground mt-1">
                           {(video.fileSize / 1024 / 1024).toFixed(2)} MB • {video.viewCount} 回視聴
+                          {video.isPublished === 0 && (
+                            <span className="ml-2 text-orange-500">（非公開）</span>
+                          )}
                         </p>
                       </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDelete(video.id)}
-                      disabled={deleteVideoMutation.isPending}
-                    >
-                      <Trash2 className="w-4 h-4 text-destructive" />
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor={`published-${video.id}`} className="text-sm">
+                          {video.isPublished === 1 ? "公開" : "非公開"}
+                        </Label>
+                        <Switch
+                          id={`published-${video.id}`}
+                          checked={video.isPublished === 1}
+                          onCheckedChange={() => handleTogglePublished(video.id, video.isPublished)}
+                          disabled={updatePublishedStatusMutation.isPending}
+                        />
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(video.id)}
+                        disabled={deleteVideoMutation.isPending}
+                      >
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>

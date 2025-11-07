@@ -15,6 +15,13 @@
       "when": 1762488111022,
       "tag": "0001_concerned_stingray",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1762497520087,
+      "tag": "0002_wide_mikhail_rasputin",
+      "breakpoints": true
     }
   ]
 }

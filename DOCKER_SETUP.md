@@ -28,14 +28,13 @@ cd video-stream-study
 
 ### 2. 環境変数の設定（オプション）
 
-**開発環境では認証が自動的にバイパスされます**。Docker Composeには`BYPASS_AUTH=true`が設定されており、Manus OAuthなしでもすぐに使用できます。
+**認証バイパスはデータベースで管理されます**。初回起動後、`make bypass-auth`で認証バイパスを有効化できます。
 
 OAuth認証を有効にしたい場合は、`.env`ファイルを作成して設定します：
 
 ```bash
 cp env.example.txt .env
 # .envファイルを編集
-# BYPASS_AUTH=false に変更
 # Manus OAuthの設定を追加
 ```
 

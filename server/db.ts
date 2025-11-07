@@ -1,6 +1,6 @@
 import { eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, InsertVideo, users, videos } from "../drizzle/schema";
+import { InsertUser, InsertVideo, InsertSetting, users, videos, settings } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -101,15 +101,10 @@ export async function createVideo(video: InsertVideo) {
   return result;
 }
 
-function normalizeVideoUrl(url: string): string {
-  // Replace internal MinIO endpoint with public endpoint if configured
-  if (process.env.AWS_S3_PUBLIC_ENDPOINT && process.env.AWS_S3_ENDPOINT) {
-    const internalEndpoint = process.env.AWS_S3_ENDPOINT;
-    const publicEndpoint = process.env.AWS_S3_PUBLIC_ENDPOINT;
-    // Replace both http://minio:9000 and http://minio:9002 with public endpoint
-    return url.replace(/http:\/\/minio:\d+/, publicEndpoint);
-  }
-  return url;
+function normalizeVideoUrl(url: string, videoId: number): string {
+  // Use proxy endpoint instead of direct MinIO URL
+  // This prevents direct download and URL exposure
+  return `/api/video/stream/${videoId}`;
 }
 
 export async function getVideoById(id: number) {
@@ -119,7 +114,8 @@ export async function getVideoById(id: number) {
   const result = await db.select().from(videos).where(eq(videos.id, id)).limit(1);
   if (result.length > 0) {
     const video = result[0];
-    return { ...video, url: normalizeVideoUrl(video.url) };
+    // Return proxy URL instead of direct MinIO URL
+    return { ...video, url: normalizeVideoUrl(video.url, video.id) };
   }
   return undefined;
 }
@@ -129,7 +125,7 @@ export async function getAllVideos() {
   if (!db) return [];
   
   const result = await db.select().from(videos).orderBy(videos.createdAt);
-  return result.map(video => ({ ...video, url: normalizeVideoUrl(video.url) }));
+  return result.map(video => ({ ...video, url: normalizeVideoUrl(video.url, video.id) }));
 }
 
 export async function getPublishedVideos() {
@@ -137,7 +133,14 @@ export async function getPublishedVideos() {
   if (!db) return [];
   
   const result = await db.select().from(videos).where(eq(videos.isPublished, 1)).orderBy(videos.createdAt);
-  return result.map(video => ({ ...video, url: normalizeVideoUrl(video.url) }));
+  return result.map(video => ({ ...video, url: normalizeVideoUrl(video.url, video.id) }));
+}
+
+export async function updateVideoPublishedStatus(id: number, isPublished: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.update(videos).set({ isPublished }).where(eq(videos.id, id));
 }
 
 export async function deleteVideo(id: number) {
@@ -152,4 +155,35 @@ export async function incrementViewCount(id: number) {
   if (!db) return;
   
   await db.update(videos).set({ viewCount: sql`${videos.viewCount} + 1` }).where(eq(videos.id, id));
+}
+
+/**
+ * Settings management helpers
+ */
+
+export async function getSetting(key: string): Promise<string | null> {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const result = await db.select().from(settings).where(eq(settings.key, key)).limit(1);
+  return result.length > 0 ? result[0].value : null;
+}
+
+export async function setSetting(key: string, value: string, description?: string): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const existing = await db.select().from(settings).where(eq(settings.key, key)).limit(1);
+  
+  if (existing.length > 0) {
+    await db.update(settings).set({ value, description }).where(eq(settings.key, key));
+  } else {
+    await db.insert(settings).values({ key, value, description });
+  }
+}
+
+export async function getBypassAuth(): Promise<boolean> {
+  // Check database only (environment variable support removed)
+  const dbValue = await getSetting("BYPASS_AUTH");
+  return dbValue === "true";
 }

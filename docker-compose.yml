@@ -103,8 +103,10 @@ services:
       PORT: 3000
       NODE_ENV: development
       
-      # Authentication Bypass (Development Only)
-      BYPASS_AUTH: "true"
+      # Video Streaming Auth (set to "true" to enable authentication check)
+      # When enabled: unpublished videos (isPublished=0) require authentication
+      # When disabled: all videos are accessible without authentication
+      ENABLE_VIDEO_AUTH: ${ENABLE_VIDEO_AUTH:-false}
     ports:
       - "3000:3000"
     volumes:

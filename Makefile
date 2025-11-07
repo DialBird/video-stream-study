@@ -1,4 +1,4 @@
-.PHONY: help setup up down restart logs clean db-migrate db-reset minio-setup install dev build test
+.PHONY: help setup up down restart logs clean db-migrate db-reset db-shell db-query db-list-videos db-publish-video db-unpublish-video bypass-auth unbypass-auth check-bypass-auth minio-setup install dev build test
 
 # Default target
 help:
@@ -21,7 +21,14 @@ help:
 	@echo "Database Commands:"
 	@echo "  make db-migrate     - Run database migrations"
 	@echo "  make db-reset       - Reset database (drop + migrate)"
-	@echo "  make db-shell       - Open MySQL shell"
+	@echo "  make db-shell       - Open MySQL shell (interactive)"
+	@echo "  make db-query       - Execute SQL query (usage: make db-query QUERY='SELECT * FROM videos')"
+	@echo "  make db-list-videos - List all videos"
+	@echo "  make db-publish-video - Publish video (usage: make db-publish-video ID=1)"
+	@echo "  make db-unpublish-video - Unpublish video (usage: make db-unpublish-video ID=1)"
+	@echo "  make bypass-auth - Enable authentication bypass (DB managed)"
+	@echo "  make unbypass-auth - Disable authentication bypass (DB managed)"
+	@echo "  make check-bypass-auth - Check current bypass-auth status"
 	@echo ""
 	@echo "Storage Commands:"
 	@echo "  make minio-setup    - Setup MinIO bucket"
@@ -102,7 +109,64 @@ db-reset:
 
 db-shell:
 	@echo "Opening MySQL shell..."
+	@echo "Database: video_stream_study"
+	@echo "User: dbuser"
+	@echo ""
 	docker-compose exec mysql mysql -udbuser -pdbpassword video_stream_study
+
+db-query:
+	@if [ -z "$(QUERY)" ]; then \
+		echo "Error: QUERY parameter is required"; \
+		echo "Usage: make db-query QUERY='SELECT * FROM videos'"; \
+		exit 1; \
+	fi
+	@echo "Executing query: $(QUERY)"
+	@docker-compose exec mysql mysql -udbuser -pdbpassword video_stream_study -e "$(QUERY)"
+
+db-list-videos:
+	@echo "Listing all videos..."
+	@docker-compose exec mysql mysql -udbuser -pdbpassword video_stream_study -e "SELECT id, title, isPublished, viewCount, createdAt FROM videos ORDER BY createdAt DESC;"
+
+db-publish-video:
+	@if [ -z "$(ID)" ]; then \
+		echo "Error: ID parameter is required"; \
+		echo "Usage: make db-publish-video ID=1"; \
+		exit 1; \
+	fi
+	@echo "Publishing video ID: $(ID)"
+	@docker-compose exec mysql mysql -udbuser -pdbpassword video_stream_study -e "UPDATE videos SET isPublished = 1 WHERE id = $(ID);"
+	@echo "Video $(ID) has been published"
+
+db-unpublish-video:
+	@if [ -z "$(ID)" ]; then \
+		echo "Error: ID parameter is required"; \
+		echo "Usage: make db-unpublish-video ID=1"; \
+		exit 1; \
+	fi
+	@echo "Unpublishing video ID: $(ID)"
+	@docker-compose exec mysql mysql -udbuser -pdbpassword video_stream_study -e "UPDATE videos SET isPublished = 0 WHERE id = $(ID);"
+	@echo "Video $(ID) has been unpublished"
+
+bypass-auth:
+	@echo "Enabling authentication bypass..."
+	@docker-compose exec mysql mysql -udbuser -pdbpassword video_stream_study -e "INSERT INTO settings (\`key\`, \`value\`, \`description\`) VALUES ('BYPASS_AUTH', 'true', 'Enable authentication bypass for development') ON DUPLICATE KEY UPDATE \`value\` = 'true', \`updatedAt\` = NOW();"
+	@echo "Authentication bypass has been enabled"
+	@echo "Note: You may need to restart the app container for changes to take effect"
+
+unbypass-auth:
+	@echo "Disabling authentication bypass..."
+	@docker-compose exec mysql mysql -udbuser -pdbpassword video_stream_study -e "INSERT INTO settings (\`key\`, \`value\`, \`description\`) VALUES ('BYPASS_AUTH', 'false', 'Enable authentication bypass for development') ON DUPLICATE KEY UPDATE \`value\` = 'false', \`updatedAt\` = NOW();"
+	@echo "Authentication bypass has been disabled"
+	@echo "Note: You may need to restart the app container for changes to take effect"
+
+check-bypass-auth:
+	@echo "Checking authentication bypass status..."
+	@docker-compose exec mysql mysql -udbuser -pdbpassword video_stream_study -e "SELECT \`key\`, \`value\`, \`description\`, \`updatedAt\` FROM settings WHERE \`key\` = 'BYPASS_AUTH';" || echo "BYPASS_AUTH setting not found in database"
+	@if [ "$$(docker-compose exec -T mysql mysql -udbuser -pdbpassword video_stream_study -se \"SELECT \`value\` FROM settings WHERE \`key\` = 'BYPASS_AUTH'\" 2>/dev/null)" = "true" ]; then \
+		echo "Status: ENABLED (from database)"; \
+	else \
+		echo "Status: DISABLED"; \
+	fi
 
 # Storage commands
 minio-setup:

@@ -1,6 +1,7 @@
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
 import type { User } from "../../drizzle/schema";
 import { sdk } from "./sdk";
+import { getBypassAuth } from "../db";
 
 export type TrpcContext = {
   req: CreateExpressContextOptions["req"];
@@ -13,8 +14,9 @@ export async function createContext(
 ): Promise<TrpcContext> {
   let user: User | null = null;
 
-  // Development mode: bypass authentication
-  if (process.env.BYPASS_AUTH === "true") {
+  // Development mode: bypass authentication (check DB first, then env var for backward compatibility)
+  const bypassAuth = await getBypassAuth();
+  if (bypassAuth) {
     user = {
       id: 1,
       openId: "dev-user",

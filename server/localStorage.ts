@@ -71,6 +71,29 @@ export async function localStoragePut(
 }
 
 /**
+ * Get presigned download URL for S3/MinIO object (internal endpoint version)
+ * Use this for server-to-server communication within containers
+ */
+export async function localStorageGetInternal(
+  relKey: string,
+  expiresIn = 3600
+): Promise<{ key: string; url: string }> {
+  const client = getS3Client();
+  const bucket = getBucket();
+  const key = normalizeKey(relKey);
+
+  const command = new GetObjectCommand({
+    Bucket: bucket,
+    Key: key,
+  });
+
+  // Return URL with internal endpoint (no replacement)
+  const url = await getSignedUrl(client, command, { expiresIn });
+
+  return { key, url };
+}
+
+/**
  * Get presigned download URL for S3/MinIO object
  */
 export async function localStorageGet(
