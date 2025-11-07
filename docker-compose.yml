@@ -101,6 +101,9 @@ services:
       VITE_APP_TITLE: Video Stream Study
       PORT: 3000
       NODE_ENV: development
+      
+      # Authentication Bypass (Development Only)
+      BYPASS_AUTH: "true"
     ports:
       - "3000:3000"
     volumes:

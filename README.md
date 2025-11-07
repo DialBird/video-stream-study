@@ -108,14 +108,19 @@ video-stream-study/
 
 #### Dockerを使用する場合（推奨）
 
-Docker Composeを使用すると、MySQL、MinIO、開発環境を一括で起動できます。詳細は **[DOCKER_SETUP.md](./DOCKER_SETUP.md)** を参照してください。
+Docker Composeを使用すると、MySQL、MinIO、開発環境を一括で起動できます。**認証は自動的にバイパスされるため、Manus OAuthなしでもすぐに使用できます。**
+
+詳細は **[DOCKER_SETUP.md](./DOCKER_SETUP.md)** を参照してください。
 
 ```bash
 # クイックスタート
 git clone https://github.com/DialBird/video-stream-study.git
 cd video-stream-study
 make up
+# http://localhost:3000 にアクセス（認証不要）
 ```
+
+> **注意**: 開発環境では認証がバイパスされます。詳細は [AUTH_BYPASS.md](./AUTH_BYPASS.md) を参照してください。
 
 #### Dockerを使用しない場合
 
