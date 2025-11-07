@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import multer from "multer";
-import { storagePut } from "./storage";
+import { storagePut } from "./storageAdapter";
 
 // Configure multer for memory storage
 const upload = multer({

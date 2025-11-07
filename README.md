@@ -100,27 +100,32 @@ video-stream-study/
 
 ## 開発環境のセットアップ
 
-### 必要な環境変数
-プロジェクトは以下の環境変数を自動的に設定します：
-- `DATABASE_URL`: データベース接続文字列
-- `JWT_SECRET`: セッション署名用シークレット
-- `VITE_APP_TITLE`: アプリケーションタイトル
-- その他のManus OAuth設定
+### Manus Platformでの開発（推奨）
 
-### 開発サーバーの起動
+このプロジェクトはManus Platform上で開発されており、環境変数やインフラが自動的に設定されます。
+
+### ローカル環境でのセットアップ
+
+#### Dockerを使用する場合（推奨）
+
+Docker Composeを使用すると、MySQL、MinIO、開発環境を一括で起動できます。詳細は **[DOCKER_SETUP.md](./DOCKER_SETUP.md)** を参照してください。
 
 ```bash
-# 依存関係のインストール
-pnpm install
-
-# データベースマイグレーション
-pnpm db:push
-
-# 開発サーバーの起動
-pnpm dev
+# クイックスタート
+git clone https://github.com/DialBird/video-stream-study.git
+cd video-stream-study
+make up
 ```
 
-開発サーバーは `http://localhost:3000` で起動します。
+#### Dockerを使用しない場合
+
+手動で環境を構築する場合は、**[LOCAL_SETUP.md](./LOCAL_SETUP.md)** を参照してください。以下の設定が必要です：
+
+- Node.js v18以上
+- pnpm v8以上
+- MySQL v8以上
+- S3ストレージ（AWS S3またはMinIO）
+- 環境変数の設定（`.env`ファイル）
 
 ## 使用方法
 
