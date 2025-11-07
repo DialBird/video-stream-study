@@ -77,6 +77,7 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.17",
     "@tailwindcss/typography": "^0.5.15",
     "@types/express": "4.17.21",
     "@types/multer": "^2.0.0",
@@ -84,11 +85,10 @@
     "@types/react": "^19.1.16",
     "@types/react-dom": "^19.1.9",
     "add": "^2.0.6",
-    "autoprefixer": "^10.4.20",
     "drizzle-kit": "^0.31.4",
     "next": "^15.1.6",
     "pnpm": "^10.15.1",
-    "postcss": "^8.4.47",
+    "postcss": "^8.5.6",
     "prettier": "^3.6.2",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.19.1",
