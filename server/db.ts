@@ -101,26 +101,43 @@ export async function createVideo(video: InsertVideo) {
   return result;
 }
 
+function normalizeVideoUrl(url: string): string {
+  // Replace internal MinIO endpoint with public endpoint if configured
+  if (process.env.AWS_S3_PUBLIC_ENDPOINT && process.env.AWS_S3_ENDPOINT) {
+    const internalEndpoint = process.env.AWS_S3_ENDPOINT;
+    const publicEndpoint = process.env.AWS_S3_PUBLIC_ENDPOINT;
+    // Replace both http://minio:9000 and http://minio:9002 with public endpoint
+    return url.replace(/http:\/\/minio:\d+/, publicEndpoint);
+  }
+  return url;
+}
+
 export async function getVideoById(id: number) {
   const db = await getDb();
   if (!db) return undefined;
   
   const result = await db.select().from(videos).where(eq(videos.id, id)).limit(1);
-  return result.length > 0 ? result[0] : undefined;
+  if (result.length > 0) {
+    const video = result[0];
+    return { ...video, url: normalizeVideoUrl(video.url) };
+  }
+  return undefined;
 }
 
 export async function getAllVideos() {
   const db = await getDb();
   if (!db) return [];
   
-  return await db.select().from(videos).orderBy(videos.createdAt);
+  const result = await db.select().from(videos).orderBy(videos.createdAt);
+  return result.map(video => ({ ...video, url: normalizeVideoUrl(video.url) }));
 }
 
 export async function getPublishedVideos() {
   const db = await getDb();
   if (!db) return [];
   
-  return await db.select().from(videos).where(eq(videos.isPublished, 1)).orderBy(videos.createdAt);
+  const result = await db.select().from(videos).where(eq(videos.isPublished, 1)).orderBy(videos.createdAt);
+  return result.map(video => ({ ...video, url: normalizeVideoUrl(video.url) }));
 }
 
 export async function deleteVideo(id: number) {

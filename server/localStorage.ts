@@ -63,8 +63,9 @@ export async function localStoragePut(
   await client.send(command);
 
   // Construct public URL
-  const endpoint = process.env.AWS_S3_ENDPOINT || `https://s3.${process.env.AWS_REGION || "us-east-1"}.amazonaws.com`;
-  const url = `${endpoint}/${bucket}/${key}`;
+  // Use AWS_S3_PUBLIC_ENDPOINT for browser-accessible URLs, fallback to AWS_S3_ENDPOINT
+  const publicEndpoint = process.env.AWS_S3_PUBLIC_ENDPOINT || process.env.AWS_S3_ENDPOINT || `https://s3.${process.env.AWS_REGION || "us-east-1"}.amazonaws.com`;
+  const url = `${publicEndpoint}/${bucket}/${key}`;
 
   return { key, url };
 }
@@ -85,7 +86,14 @@ export async function localStorageGet(
     Key: key,
   });
 
-  const url = await getSignedUrl(client, command, { expiresIn });
+  let url = await getSignedUrl(client, command, { expiresIn });
+  
+  // Replace internal endpoint with public endpoint if AWS_S3_PUBLIC_ENDPOINT is set
+  if (process.env.AWS_S3_PUBLIC_ENDPOINT && process.env.AWS_S3_ENDPOINT) {
+    const internalEndpoint = process.env.AWS_S3_ENDPOINT;
+    const publicEndpoint = process.env.AWS_S3_PUBLIC_ENDPOINT;
+    url = url.replace(internalEndpoint, publicEndpoint);
+  }
 
   return { key, url };
 }
