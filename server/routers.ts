@@ -50,7 +50,13 @@ export const appRouter = router({
     }),
 
     // Get published videos (public)
-    list: publicProcedure.query(async () => {
+    // If user is authenticated (especially admin via bypass-auth), return all videos
+    list: publicProcedure.query(async ({ ctx }) => {
+      // If user is authenticated (including bypass-auth admin), show all videos
+      if (ctx.user && ctx.user.role === 'admin') {
+        return await getAllVideos();
+      }
+      // Otherwise, return only published videos
       return await getPublishedVideos();
     }),
 

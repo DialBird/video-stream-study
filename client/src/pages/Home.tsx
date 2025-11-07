@@ -79,9 +79,14 @@ export default function Home() {
                           {video.description}
                         </CardDescription>
                       )}
-                      <p className="text-xs text-muted-foreground mt-2">
-                        {video.viewCount} 回視聴
-                      </p>
+                      <div className="flex items-center justify-between mt-2">
+                        <p className="text-xs text-muted-foreground">
+                          {video.viewCount} 回視聴
+                        </p>
+                        {video.isPublished === 0 && (
+                          <span className="text-xs text-orange-500 font-medium">（非公開）</span>
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
                 </a>

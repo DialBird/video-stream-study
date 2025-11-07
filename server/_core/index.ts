@@ -70,63 +70,67 @@ async function startServer() {
       const video = videoResult[0];
       const mimeType = video.mimeType;
 
-      // Authentication check (can be enabled/disabled via environment variable)
-      const enableAuth = process.env.ENABLE_VIDEO_AUTH === "true";
+      // Check if bypass auth is enabled (admin user can access all videos)
+      const bypassAuth = await getBypassAuth();
       let user = null;
 
-      if (enableAuth) {
-        try {
-          // Try to authenticate user
-          const bypassAuth = await getBypassAuth();
-          if (bypassAuth) {
-            // Development mode: create mock user
-            user = {
-              id: 1,
-              openId: "dev-user",
-              name: "Development User",
-              email: "dev@example.com",
-              loginMethod: "bypass",
-              role: "admin" as const,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-              lastSignedIn: new Date(),
-            };
-          } else {
-            user = await sdk.authenticateRequest(req);
-          }
+      if (bypassAuth) {
+        // Development mode: create mock admin user
+        // Admin users can access all videos including unpublished ones
+        user = {
+          id: 1,
+          openId: "dev-user",
+          name: "Development User",
+          email: "dev@example.com",
+          loginMethod: "bypass",
+          role: "admin" as const,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          lastSignedIn: new Date(),
+        };
+        console.log(`[Video Stream] Video ${videoId} accessed by admin user (bypass auth enabled), Published: ${video.isPublished}`);
+      } else {
+        // Authentication check (can be enabled/disabled via environment variable)
+        const enableAuth = process.env.ENABLE_VIDEO_AUTH === "true";
 
-          // Check if video is published
-          if (video.isPublished === 0) {
-            // Unpublished video requires authentication
-            if (!user) {
-              console.log(`[Video Stream] Unauthorized access attempt to unpublished video ${videoId}`);
+        if (enableAuth) {
+          try {
+            // Try to authenticate user
+            user = await sdk.authenticateRequest(req);
+
+            // Check if video is published
+            if (video.isPublished === 0) {
+              // Unpublished video requires authentication
+              if (!user) {
+                console.log(`[Video Stream] Unauthorized access attempt to unpublished video ${videoId}`);
+                return res.status(401).json({ 
+                  error: "Unauthorized",
+                  message: "この動画を視聴するにはログインが必要です",
+                  requiresAuth: true
+                });
+              }
+              console.log(`[Video Stream] Video ${videoId} accessed by authenticated user ${user.id} (${user.name})`);
+            } else {
+              // Published video - log access
+              console.log(`[Video Stream] Video ${videoId} accessed by ${user ? `user ${user.id} (${user.name})` : 'anonymous'}`);
+            }
+          } catch (error) {
+            // Authentication failed
+            if (video.isPublished === 0) {
+              console.log(`[Video Stream] Authentication failed for unpublished video ${videoId}`);
               return res.status(401).json({ 
                 error: "Unauthorized",
                 message: "この動画を視聴するにはログインが必要です",
                 requiresAuth: true
               });
             }
-            console.log(`[Video Stream] Video ${videoId} accessed by authenticated user ${user.id} (${user.name})`);
-          } else {
-            // Published video - log access
-            console.log(`[Video Stream] Video ${videoId} accessed by ${user ? `user ${user.id} (${user.name})` : 'anonymous'}`);
+            // Published video - allow anonymous access
+            console.log(`[Video Stream] Video ${videoId} accessed anonymously (auth failed)`);
           }
-        } catch (error) {
-          // Authentication failed
-          if (video.isPublished === 0) {
-            console.log(`[Video Stream] Authentication failed for unpublished video ${videoId}`);
-            return res.status(401).json({ 
-              error: "Unauthorized",
-              message: "この動画を視聴するにはログインが必要です",
-              requiresAuth: true
-            });
-          }
-          // Published video - allow anonymous access
-          console.log(`[Video Stream] Video ${videoId} accessed anonymously (auth failed)`);
+        } else {
+          // Auth disabled - log for comparison
+          console.log(`[Video Stream] Video ${videoId} accessed (auth disabled), Published: ${video.isPublished}`);
         }
-      } else {
-        // Auth disabled - log for comparison
-        console.log(`[Video Stream] Video ${videoId} accessed (auth disabled), Published: ${video.isPublished}`);
       }
 
       // Get signed URL from MinIO using internal endpoint (for container-to-container communication)
