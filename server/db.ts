@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, InsertVideo, users, videos } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -89,4 +89,50 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+/**
+ * Video management helpers
+ */
+
+export async function createVideo(video: InsertVideo) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const result = await db.insert(videos).values(video);
+  return result;
+}
+
+export async function getVideoById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  
+  const result = await db.select().from(videos).where(eq(videos.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getAllVideos() {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(videos).orderBy(videos.createdAt);
+}
+
+export async function getPublishedVideos() {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(videos).where(eq(videos.isPublished, 1)).orderBy(videos.createdAt);
+}
+
+export async function deleteVideo(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.delete(videos).where(eq(videos.id, id));
+}
+
+export async function incrementViewCount(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  
+  await db.update(videos).set({ viewCount: sql`${videos.viewCount} + 1` }).where(eq(videos.id, id));
+}

@@ -25,4 +25,36 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-// TODO: Add your tables here
+/**
+ * Videos table for storing uploaded video metadata
+ */
+export const videos = mysqlTable("videos", {
+  id: int("id").autoincrement().primaryKey(),
+  /** Title of the video */
+  title: varchar("title", { length: 255 }).notNull(),
+  /** Optional description */
+  description: text("description"),
+  /** S3 file key for the video file */
+  fileKey: varchar("fileKey", { length: 512 }).notNull(),
+  /** Public URL to access the video */
+  url: varchar("url", { length: 1024 }).notNull(),
+  /** MIME type of the video (e.g., video/mp4) */
+  mimeType: varchar("mimeType", { length: 64 }).notNull(),
+  /** File size in bytes */
+  fileSize: int("fileSize").notNull(),
+  /** Duration in seconds (optional) */
+  duration: int("duration"),
+  /** Thumbnail URL (optional) */
+  thumbnailUrl: varchar("thumbnailUrl", { length: 1024 }),
+  /** User who uploaded the video */
+  uploadedBy: int("uploadedBy").notNull(),
+  /** View count */
+  viewCount: int("viewCount").default(0).notNull(),
+  /** Published status */
+  isPublished: int("isPublished").default(1).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Video = typeof videos.$inferSelect;
+export type InsertVideo = typeof videos.$inferInsert;
