@@ -54,10 +54,10 @@ export default function Home() {
           ) : videos && videos.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {videos.map((video) => (
-                <Link key={video.id} href={`/watch/${video.id}`}>
-                  <Card className="cursor-pointer hover:shadow-lg transition-shadow">
+                <a key={video.id} href={`/watch/${video.id}`} className="block">
+                  <Card className="cursor-pointer hover:shadow-lg transition-shadow h-full">
                     <CardHeader className="p-0">
-                      <div className="aspect-video bg-muted flex items-center justify-center rounded-t-lg">
+                      <div className="aspect-video bg-muted flex items-center justify-center rounded-t-lg relative">
                         {video.thumbnailUrl ? (
                           <img
                             src={video.thumbnailUrl}
@@ -84,7 +84,7 @@ export default function Home() {
                       </p>
                     </CardContent>
                   </Card>
-                </Link>
+                </a>
               ))}
             </div>
           ) : (
